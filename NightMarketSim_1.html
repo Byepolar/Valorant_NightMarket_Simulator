@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NIGHT.MARKET SIM</title>
+<style>
+  :root{
+    --bg:#0a0d12;
+    --text:#f2eefc;
+    --sub:#8391a3;
+    --red:#ff4655;
+    --coral:#ff8c85;
+    --gold:#e8b95e;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse at 50% 15%, rgba(255,70,85,0.10), transparent 50%),
+      repeating-linear-gradient(45deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 64px),
+      repeating-linear-gradient(-45deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 64px),
+      var(--bg);
+    color:var(--text);
+    font-family:'Segoe UI', Arial, sans-serif;
+    padding:0 0 60px;
+  }
+  .wrap{max-width:1220px;margin:0 auto;padding:0 20px;}
+
+  .hud{
+    display:flex;justify-content:space-between;align-items:center;
+    background:#0a0c10;border-bottom:1px solid rgba(255,255,255,.06);
+    padding:12px 24px;margin-bottom:46px;font-size:11px;color:var(--sub);
+    letter-spacing:.1em;text-transform:uppercase;flex-wrap:wrap;gap:10px;
+  }
+  .hud .back{color:var(--sub);font-weight:700;}
+  .hud .icons{display:flex;align-items:center;gap:18px;flex:1;justify-content:center;flex-wrap:wrap;}
+  .hud .play{
+    background:var(--red);color:#fff;font-weight:800;padding:8px 26px;letter-spacing:.15em;
+  }
+  .hud .icon{opacity:.55;font-size:13px;}
+  .hud .currency{display:flex;gap:14px;color:#dfe3ea;font-weight:700;}
+  .hud .currency b{color:var(--gold);font-weight:800;}
+
+  .titleBlock{text-align:center;margin-bottom:44px;}
+  .title{
+    font-size:60px;font-weight:900;letter-spacing:.02em;
+    color:var(--coral);
+    text-shadow:0 0 34px rgba(255,110,100,.35);
+    margin:0;
+  }
+  .subline{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    font-size:13px;letter-spacing:.12em;text-transform:uppercase;
+    color:#c7ccd6;margin-top:12px;
+  }
+  .subline b{color:var(--red);font-weight:800;}
+  .tick{width:26px;height:1px;background:rgba(255,255,255,.3);position:relative;}
+  .tick:before{content:"";position:absolute;right:0;top:-4px;width:1px;height:9px;background:rgba(255,255,255,.3);transform:rotate(30deg);}
+  .tick.left:before{left:0;right:auto;transform:rotate(-30deg);}
+  .rule{
+    width:340px;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(200,170,255,.5),transparent);
+    margin:14px auto 0;
+  }
+
+  .status{
+    text-align:center;color:var(--sub);font-size:13px;letter-spacing:.05em;
+    padding:60px 0;
+  }
+
+  .grid{
+    display:grid;grid-template-columns:repeat(6,1fr);gap:14px;
+  }
+  @media(max-width:900px){.grid{grid-template-columns:repeat(3,1fr);}}
+  @media(max-width:520px){.grid{grid-template-columns:repeat(2,1fr);}}
+
+  .card-outer{
+    aspect-ratio:3/4.1;
+    position:relative;
+    perspective:1100px;
+  }
+  .card-tilt{
+    width:100%;height:100%;
+    transition:transform .35s cubic-bezier(.2,.8,.2,1), filter .35s ease;
+    transform-style:preserve-3d;
+    will-change:transform;
+  }
+  .card-outer:hover .card-tilt{filter:brightness(1.08);}
+
+  .card-inner{
+    position:relative;width:100%;height:100%;
+    transform-style:preserve-3d;
+    transition:transform .7s cubic-bezier(.22,1,.36,1);
+  }
+  .card-inner.flipped{transform:rotateY(180deg);}
+
+  .card-face{
+    position:absolute;inset:0;
+    border-radius:2px;overflow:hidden;
+    backface-visibility:hidden;
+    -webkit-backface-visibility:hidden;
+  }
+  .card-face.front{cursor:pointer;}
+  .card-face.back{transform:rotateY(180deg);}
+
+  .card-face.front.locked{
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M20 2 L38 20 L20 38 L2 20 Z' fill='none' stroke='rgba(255,255,255,0.08)' stroke-width='1'/%3E%3C/svg%3E"),
+      linear-gradient(165deg,#232630,#101218);
+    display:flex;align-items:center;justify-content:center;
+    transition:box-shadow .35s ease;
+    animation:idleGlow 3.4s ease-in-out infinite;
+  }
+  .card-face.front.locked .diamond{
+    width:50px;height:50px;border:1px solid rgba(255,255,255,.28);
+    transform:rotate(45deg);position:relative;
+    transition:transform .35s ease, border-color .35s ease;
+  }
+  .card-face.front.locked .diamond:before{
+    content:"";position:absolute;inset:12px;border:1px solid rgba(255,255,255,.18);
+  }
+  .card-outer:hover .card-face.front.locked .diamond{
+    transform:rotate(225deg) scale(1.08);
+    border-color:rgba(255,255,255,.55);
+  }
+
+.card-face.front.locked.select{background:linear-gradient(165deg,#1b63d8,#09182d);box-shadow:0 0 20px rgba(32,120,255,.35);display:flex;align-items:center;justify-content:center;}
+.card-face.front.locked.deluxe{background:linear-gradient(165deg,#16b97c,#08231c);box-shadow:0 0 22px rgba(0,255,160,.25);display:flex;align-items:center;justify-content:center;}
+.card-face.front.locked.premium{background:linear-gradient(165deg,#8d3cff,#25093f);box-shadow:0 0 28px rgba(170,80,255,.35);display:flex;align-items:center;justify-content:center;}
+.card-face.front.locked.exclusive{background:linear-gradient(165deg,#f0ca62,#4d3108);box-shadow:0 0 32px rgba(255,210,90,.45);display:flex;align-items:center;justify-content:center;}
+
+.card-outer:hover .card-face.front.locked.select{box-shadow:0 0 34px rgba(32,140,255,.6), 0 0 60px rgba(32,120,255,.25);}
+.card-outer:hover .card-face.front.locked.deluxe{box-shadow:0 0 36px rgba(0,255,170,.55), 0 0 62px rgba(0,255,160,.22);}
+.card-outer:hover .card-face.front.locked.premium{box-shadow:0 0 42px rgba(180,90,255,.6), 0 0 70px rgba(170,80,255,.3);}
+.card-outer:hover .card-face.front.locked.exclusive{box-shadow:0 0 48px rgba(255,220,110,.7), 0 0 80px rgba(255,210,90,.35);}
+
+@keyframes idleGlow{
+  0%,100%{filter:brightness(1);}
+  50%{filter:brightness(1.12);}
+}
+
+.card-face.back{
+    background:linear-gradient(165deg,var(--rc-a,#333),var(--rc-b,#111));
+    display:flex;flex-direction:column;justify-content:space-between;
+    padding:10px 10px 0;
+    box-shadow:0 0 24px rgba(0,0,0,.4), inset 0 0 40px rgba(255,255,255,.04);
+  }
+  .card-inner.flipped .card-face.back{animation:revealGlow .8s ease;}
+  @keyframes revealGlow{
+    0%{filter:brightness(2.2) saturate(1.4);}
+    100%{filter:brightness(1) saturate(1);}
+  }
+
+  .particle{
+    position:absolute;top:50%;left:50%;width:5px;height:5px;border-radius:50%;
+    background:var(--pc,#fff);pointer-events:none;
+    box-shadow:0 0 6px 1px var(--pc,#fff);
+    animation:particleBurst .85s ease-out forwards;
+  }
+  .particle.spark{width:2px;height:10px;border-radius:1px;}
+  @keyframes particleBurst{
+    0%{transform:translate(-50%,-50%) translate(0,0) scale(1) rotate(0deg);opacity:1;}
+    100%{transform:translate(-50%,-50%) translate(var(--px),var(--py)) scale(0) rotate(var(--pr,180deg));opacity:0;}
+  }
+  @keyframes ringPulse{
+    0%{transform:translate(-50%,-50%) scale(.2);opacity:.8;}
+    100%{transform:translate(-50%,-50%) scale(2.6);opacity:0;}
+  }
+  .burstRing{
+    position:absolute;top:50%;left:50%;width:60px;height:60px;border-radius:50%;
+    border:2px solid var(--pc,#fff);pointer-events:none;
+    animation:ringPulse .6s ease-out forwards;
+  }
+
+  .badgeRow{display:flex;justify-content:space-between;align-items:flex-start;}
+  .discBadge{
+    background:var(--red);color:#fff;font-size:11px;font-weight:800;
+    padding:3px 7px;border-radius:2px;
+  }
+  .priceBox{text-align:right;}
+  .newP{font-size:13px;font-weight:800;color:#fff;}
+  .oldP{font-size:10px;color:#ff8f8f;text-decoration:line-through;}
+
+  .artZone{
+    flex:1;display:flex;align-items:center;justify-content:center;
+    padding:6px 0;
+  }
+  .artZone img{max-width:92%;max-height:100%;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5));}
+
+  .nameBar{
+    background:rgba(0,0,0,.55);
+    margin:0 -10px;padding:8px 10px;
+    font-size:11px;font-weight:800;letter-spacing:.04em;line-height:1.3;
+    text-transform:uppercase;color:#fff;
+  }
+  .nameBar .wpn{opacity:.7;font-weight:700;}
+
+  .footerRow{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-top:36px;font-size:11px;color:var(--sub);letter-spacing:.05em;flex-wrap:wrap;gap:12px;
+  }
+  .rerollBtn{
+    background:transparent;color:var(--text);border:1px solid rgba(255,255,255,.3);
+    padding:10px 20px;font-weight:700;letter-spacing:.1em;font-size:12px;
+    text-transform:uppercase;cursor:pointer;border-radius:2px;
+  }
+  .rerollBtn:hover{background:rgba(255,255,255,.08);}
+  .rerollBtn:disabled{opacity:.4;cursor:default;}
+  .disclaimer{opacity:.55;text-align:center;font-size:10px;margin-top:22px;letter-spacing:.03em;line-height:1.6;}
+  .legend{display:flex;justify-content:center;gap:16px;margin-top:16px;flex-wrap:wrap;font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hud">
+    <div class="back">&lt; BACK //</div>
+    <div class="icons">
+      <span class="icon">⌂</span><span class="icon">⚑</span><span class="icon">☰</span><span class="icon">✚</span>
+      <div class="play">PLAY</div>
+      <span class="icon">✦</span><span class="icon">✉</span><span class="icon">🛒</span><span class="icon">✂</span>
+    </div>
+    <div class="currency"><span><b id="vp">9,978</b></span></div>
+  </div>
+
+  <div class="titleBlock">
+    <h1 class="title">NIGHT.MARKET</h1>
+    <div class="subline"><span class="tick left"></span>ENDS IN <b id="daysLeft">12 DAYS</b> · TAP TO REVEAL<span class="tick"></span></div>
+  </div>
+
+  <div style="text-align:center;font-size:10px;color:var(--sub);letter-spacing:.08em;text-transform:uppercase;margin-bottom:30px;opacity:.6;">
+    DATA: VALORANT-API.COM (OPEN/UNOFFICIAL) &nbsp;·&nbsp; PRICES SIMULATED &nbsp;·&nbsp; NOT AFFILIATED WITH RIOT
+  </div>
+
+  <div id="status" class="status">Loading live skin data…</div>
+  <div class="grid" id="grid" style="display:none;"></div>
+  <div class="legend" id="legend" style="display:none;"></div>
+
+  <div class="footerRow" id="footerRow" style="display:none;">
+    <div>OPENED <b style="color:#fff" id="openCount">0</b>/6</div>
+    <button class="rerollBtn" id="rerollBtn">NEW MARKET</button>
+    <div>SAVED <b style="color:#fff" id="savedTotal">0</b> VP</div>
+  </div>
+
+  <div class="disclaimer" id="disclaimer" style="display:none;">
+    Real skin names, weapons &amp; art pulled live from the open valorant-api.com dataset, filtered to the actual Night Market&ndash;eligible collections · unofficial fan tool, not affiliated with Riot Games.<br>
+    Only Select, Deluxe &amp; Premium collections appear, matching Riot's real eligibility list — Ultra Edition, non-eligible collections, and melee skins over 3,550 VP never show up. Discounts run 10–49% (Riot has not published a weighting within that range, so this simulates a uniform roll). Quality floor: at least 2 of your 6 offers are guaranteed Premium Edition or knife/melee tier, and no weapon repeats more than twice.
+  </div>
+</div>
+
+<script>
+const GOLD = '#e8b95e';
+
+// Real Night Market eligible collections, from Riot/community data (user-provided spreadsheet)
+const ELIGIBLE_COLLECTIONS = {
+  Select: ["Convex","Daydreams","Endeavour","Fortune's Hand","Galleria","Infantry","Intergrade","Luxe","Prism II","Reverie","Rupture","Rush","Sensation","Smite","Storm Maw","Switchback","Wonderstallion"],
+  Deluxe: ["Abyssal","Altitude","Aperture","Aristocrat","Avalanche","Chromedek","Combat Crafts","Emberclad","Holomoku","Horizon","Kohaku & Matsuba","Luna","Minima","MK.VII Liberty","Nanomight","Nunca Olvidados","Orion","Prism","Sakura","Silvanus","Snowfall","Team Ace","Titanmail","Tigris","Undercity","Wasteland","Winterwunderland"],
+  Premium: ["Aemondir","Celestial","Crimsonbeast","Cryostasis","Doodle Buds","Ego","Forsaken","Gaia's Vengeance","Gravitational Uranium Neuroblaster","Ion","Magepunk","Magepunk 2.0","Magepunk 3.0","Mystbloom","Nebula","Neptune","Oni","Origin","Prime","Prime 2.0","Radiant Crisis 001","Recon","Reaver","Reaver 2.0","Soulstrife","Sovereign","Spline","Tethered Realms","VALORANT GO! Vol.1","VALORANT GO! Vol.2","VALORANT GO! Vol.3","Xenohunter"],
+};
+function normName(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+const ELIGIBLE_SET = new Set(
+  Object.values(ELIGIBLE_COLLECTIONS).flat().map(normName)
+);
+// normalized theme name -> exact bundle name as spelled in the spreadsheet
+const CANONICAL_BUNDLE = {};
+Object.values(ELIGIBLE_COLLECTIONS).flat().forEach(n => { CANONICAL_BUNDLE[normName(n)] = n; });
+
+let contentTiers = {};
+let themes = {};
+let gunPool = [];
+let meleePool = [];
+let usingFallback = false;
+
+let offers = [];
+let openedFlags = [];
+let openCount = 0;
+let savedTotal = 0;
+
+
+function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+async function loadData(){
+  let partialTiers = [];
+  try{
+    const [tiersRes, weaponsRes, themesRes] = await Promise.all([
+      fetch('https://valorant-api.com/v1/contenttiers?language=en-US'),
+      fetch('https://valorant-api.com/v1/weapons?language=en-US'),
+      fetch('https://valorant-api.com/v1/themes?language=en-US')
+    ]);
+    if(!tiersRes.ok || !weaponsRes.ok || !themesRes.ok) throw new Error('bad response');
+    const tiersJson = await tiersRes.json();
+    const weaponsJson = await weaponsRes.json();
+    const themesJson = await themesRes.json();
+
+    tiersJson.data.forEach(t => contentTiers[t.uuid] = t);
+    themesJson.data.forEach(t => themes[t.uuid] = t);
+
+    // Cross-check the hardcoded eligibility list against real live theme names —
+    // drop anything that doesn't match an actual theme currently in the game
+    // (renamed/removed collections) instead of silently keeping a dead reference.
+    const liveThemeNorms = new Set(themesJson.data.map(t => normName(t.displayName)));
+    const droppedNames = [];
+    Object.keys(ELIGIBLE_COLLECTIONS).forEach(tierKey => {
+      ELIGIBLE_COLLECTIONS[tierKey] = ELIGIBLE_COLLECTIONS[tierKey].filter(name => {
+        const norm = normName(name);
+        if(liveThemeNorms.has(norm)) return true;
+        droppedNames.push(tierKey + ': ' + name);
+        delete CANONICAL_BUNDLE[norm];
+        ELIGIBLE_SET.delete(norm);
+        return false;
+      });
+    });
+    if(droppedNames.length){
+      console.warn('Night Market: removed collection names with no matching live theme —', droppedNames);
+    }
+
+    weaponsJson.data.forEach(w => {
+      const isMelee = w.category === 'EEquippableCategory::Melee';
+      (w.skins || []).forEach(s => {
+        if(!s.contentTierUuid) return; // skip default/standard (non-purchasable) skins
+        const tier = contentTiers[s.contentTierUuid];
+        if(!tier) return;
+        if(tier.devName === 'Ultra Edition' && !isMelee) return; // Ultra never appears in real market
+        const themeName = themes[s.themeUuid] ? themes[s.themeUuid].displayName : '';
+        const bundleName = CANONICAL_BUNDLE[normName(themeName)];
+        if(!bundleName) return; // only real Night Market eligible collections (spreadsheet list)
+        const img = s.displayIcon
+          || (s.chromas && s.chromas[0] && (s.chromas[0].displayIcon || s.chromas[0].fullRender))
+          || (s.levels && s.levels[0] && s.levels[0].displayIcon);
+        if(!img) return;
+        const entry = {
+          name: bundleName,
+          weapon: isMelee ? 'Melee' : w.displayName,
+          img,
+          tierName: tier.devName,
+          tierColor: isMelee ? GOLD : ('#' + (tier.highlightColor || 'bbbbbbff').slice(0,6)),
+          isMelee
+        };
+        (isMelee ? meleePool : gunPool).push(entry);
+      });
+    });
+
+    if(gunPool.length < 6){ throw new Error('empty pool'); }
+
+    // gunPool.length passing doesn't guarantee every tier is represented — if the
+    // hardcoded ELIGIBLE_COLLECTIONS names have drifted from the live API's current
+    // theme names, a tier like Deluxe or Premium can end up with very few matches
+    // while Select still fills the pool. Rather than discarding all the real (live,
+    // real-art) data over that, only backfill the specific thin tier(s) with
+    // placeholder entries so every rarity is still represented in the market.
+    const TIER_KEYS = {select:'Select Edition', deluxe:'Deluxe Edition', premium:'Premium Edition'};
+    const MIN_PER_TIER = 3;
+    Object.entries(TIER_KEYS).forEach(([key, devName]) => {
+      const existing = gunPool.filter(e => e.tierName === devName);
+      if(existing.length < MIN_PER_TIER){
+        const existingNames = new Set(existing.map(e => e.name));
+        const collKey = key.charAt(0).toUpperCase() + key.slice(1);
+        const fillNames = (ELIGIBLE_COLLECTIONS[collKey] || []).filter(n => !existingNames.has(n));
+        gunPool = gunPool.concat(fallbackEntriesForTier(devName, fillNames));
+        partialTiers.push(key);
+      }
+    });
+    if(meleePool.length < 3){
+      const existingNames = new Set(meleePool.map(e => e.name));
+      meleePool = meleePool.concat(fallbackMeleeEntries().filter(e => !existingNames.has(e.name)));
+      partialTiers.push('melee');
+    }
+  }catch(e){
+    console.warn('Night Market: live API unreachable, using fully offline pool —', e.message);
+    usingFallback = true;
+    buildFallbackPools();
+    return;
+  }
+  if(partialTiers.length){
+    console.warn('Night Market: live API reachable but thin on', partialTiers.join(', '), '— backfilled with placeholder entries for those tiers only; other tiers keep real art.');
+    usingFallback = 'partial';
+  }
+}
+
+const FALLBACK_WEAPONS = ["Vandal","Phantom","Operator","Spectre","Sheriff","Ghost","Bulldog","Judge"];
+const FALLBACK_TIER_COLOR = {
+  'Select Edition':'#8a92a0',
+  'Deluxe Edition':'#5ee6d0',
+  'Premium Edition':'#6f8cff',
+};
+function fallbackEntriesForTier(tierDevName, names){
+  return names.map(n => ({
+    name: n,
+    weapon: pick(FALLBACK_WEAPONS),
+    img: null,
+    tierName: tierDevName,
+    tierColor: FALLBACK_TIER_COLOR[tierDevName] || '#8a92a0',
+    isMelee:false
+  }));
+}
+function fallbackMeleeEntries(){
+  return Object.values(ELIGIBLE_COLLECTIONS).flat().slice(0,8).map(n => ({
+    name: n,
+    weapon: 'Melee',
+    img: null,
+    tierName: 'Exclusive Edition',
+    tierColor: GOLD,
+    isMelee: true
+  }));
+}
+
+// Full offline fallback in case the live API can't be reached from this environment at all
+function buildFallbackPools(){
+  gunPool = [
+    ...fallbackEntriesForTier('Select Edition', ELIGIBLE_COLLECTIONS.Select),
+    ...fallbackEntriesForTier('Deluxe Edition', ELIGIBLE_COLLECTIONS.Deluxe),
+    ...fallbackEntriesForTier('Premium Edition', ELIGIBLE_COLLECTIONS.Premium),
+  ];
+  meleePool = fallbackMeleeEntries();
+}
+
+function priceRangeFor(entry){
+  if(entry.isMelee) return [2900, 3550];
+  switch(entry.tierName){
+    case 'Select Edition': return [875, 1275];
+    case 'Deluxe Edition': return [1275, 1775];
+    case 'Premium Edition': return [1775, 2475];
+    case 'Exclusive Edition': return [2475, 2975];
+    default: return [1275, 2475];
+  }
+}
+
+// Full-card background gradients per tier, matched to the real in-game look
+function tierGradient(entry){
+  if(entry.isMelee) return ['#c98a2e','#3a2308']; // gold/orange for knives
+  switch(entry.tierName){
+    case 'Select Edition': return ['#1f5c86','#0a1f30'];   // blue
+    case 'Deluxe Edition': return ['#128a72','#062821'];   // teal/green
+    case 'Premium Edition': return ['#8a2555','#2a0a1c'];  // maroon/pink
+    case 'Exclusive Edition': return ['#b0246e','#320a20'];
+    default: return ['#3a3f4c','#15171d'];
+  }
+}
+
+// Riot documents the discount range as 10%-49% but has never published a weighting
+// curve for where in that range offers tend to land, so this uses a plain uniform
+// roll across the full range rather than inventing a distribution.
+function rollDiscount(){
+  return randInt(10, 49);
+}
+function makeOffer(entry){
+ const [lo,hi]=priceRangeFor(entry);
+ const price=randInt(lo,hi);
+ const discount=rollDiscount();
+ const finalPrice=Math.round(price*(1-discount/100));
+ const [rcA,rcB]=tierGradient(entry);
+ let rarity='select';
+ if(entry.isMelee) rarity='exclusive';
+ else if(entry.tierName==='Premium Edition') rarity='premium';
+ else if(entry.tierName==='Deluxe Edition') rarity='deluxe';
+ return {...entry,price,discount,finalPrice,rcA,rcB,rarity};
+}
+
+// Builds a full 6-card market following Riot's documented Night Market rules
+// (patch v2.02 "quality floor" + support-verified constraints):
+// - Quality floor: at least 2 of the 6 offers are Premium Edition guns or knives/melees
+// - No duplicate skin in the same market
+// - No more than 2 skins for the same weapon type
+// - Everything else (which of the remaining tiers show up, and each discount %)
+//   is drawn uniformly at random from the eligible pool / the 10-49% range
+function generateMarket(){
+  const premiumPool = gunPool.filter(e => e.tierName === 'Premium Edition');
+  const highTierPool = premiumPool.concat(meleePool); // "Premium-or-knife" quality floor pool
+  const chosen = [];
+  const usedNames = new Set();
+  const weaponCounts = {};
+
+  function tryAdd(entry){
+    if(!entry) return false;
+    if(usedNames.has(entry.name)) return false;
+    if((weaponCounts[entry.weapon] || 0) >= 2) return false; // max 2 per weapon
+    chosen.push(entry);
+    usedNames.add(entry.name);
+    weaponCounts[entry.weapon] = (weaponCounts[entry.weapon] || 0) + 1;
+    return true;
+  }
+
+  // Quality floor: guarantee at least 2 Premium-or-knife offers
+  let guaranteed = 0;
+  let guard = 0;
+  while(guaranteed < 2 && highTierPool.length && guard < 50){
+    guard++;
+    if(tryAdd(pick(highTierPool))) guaranteed++;
+  }
+
+  // fill the rest from the full gun+melee pool
+  const fullPool = gunPool.concat(meleePool);
+  guard = 0;
+  while(chosen.length < 6 && guard < 200){
+    guard++;
+    tryAdd(pick(fullPool));
+  }
+
+  // last resort if pool is tiny: relax the weapon cap rather than leave an empty grid
+  guard = 0;
+  while(chosen.length < 6 && fullPool.length && guard < 200){
+    guard++;
+    const entry = pick(fullPool);
+    if(!usedNames.has(entry.name)){
+      chosen.push(entry);
+      usedNames.add(entry.name);
+    }
+  }
+
+  // shuffle so the guaranteed high-tier slots aren't always first
+  for(let i = chosen.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [chosen[i], chosen[j]] = [chosen[j], chosen[i]];
+  }
+
+  return chosen.slice(0,6).map(makeOffer);
+}
+
+function iconSVGFallback(){
+  return `<svg viewBox="0 0 200 70" xmlns="http://www.w3.org/2000/svg" style="width:80%;opacity:.9">
+    <g fill="#dfe7ea">
+      <rect x="10" y="30" width="120" height="14" rx="3"/>
+      <rect x="120" y="20" width="14" height="24" rx="2"/>
+      <rect x="134" y="26" width="40" height="10" rx="2"/>
+      <rect x="30" y="44" width="10" height="20" rx="2"/>
+    </g>
+  </svg>`;
+}
+
+const RARITY_COLOR = {select:'#4fa8e8', deluxe:'#1fd9a0', premium:'#c060ff', exclusive:GOLD};
+
+function render(){
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  offers.forEach((o,i)=>{
+    const outer = document.createElement('div');
+    outer.className = 'card-outer';
+
+    const tilt = document.createElement('div');
+    tilt.className = 'card-tilt';
+
+    const inner = document.createElement('div');
+    inner.className = 'card-inner' + (openedFlags[i] ? ' flipped' : '');
+
+    const front = document.createElement('div');
+    front.className = 'card-face front locked ' + o.rarity;
+    front.innerHTML = `<div class="diamond"></div>`;
+
+    const back = document.createElement('div');
+    back.className = 'card-face back';
+    back.style.setProperty('--rc-a', o.rcA);
+    back.style.setProperty('--rc-b', o.rcB);
+    back.innerHTML = `
+      <div class="badgeRow">
+        <div class="discBadge">-${o.discount}%</div>
+        <div class="priceBox">
+          <div class="newP">${o.finalPrice} VP</div>
+          <div class="oldP">${o.price}</div>
+        </div>
+      </div>
+      <div class="artZone">${o.img ? `<img src="${o.img}" alt="${o.name}">` : iconSVGFallback()}</div>
+      <div class="nameBar">${o.name} ${o.weapon.toUpperCase()}</div>
+    `;
+
+    inner.appendChild(front);
+    inner.appendChild(back);
+    tilt.appendChild(inner);
+    outer.appendChild(tilt);
+
+    if(!openedFlags[i]){
+      outer.addEventListener('click', () => openCard(i, outer, inner, o));
+    }
+    addTiltHandlers(outer, tilt);
+    grid.appendChild(outer);
+  });
+}
+
+// Subtle pointer-tracked 3D tilt on hover, independent of the flip transform
+function addTiltHandlers(outer, tilt){
+  outer.addEventListener('pointermove', (e) => {
+    const rect = outer.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    tilt.style.transform = `rotateY(${x*16}deg) rotateX(${-y*16}deg) translateY(-4px) scale(1.035)`;
+  });
+  outer.addEventListener('pointerleave', () => {
+    tilt.style.transform = '';
+  });
+}
+
+// Bursts a ring + scattering particles from the center of a card, colored by rarity
+function spawnParticles(outer, color){
+  const container = document.createElement('div');
+  container.style.position = 'absolute';
+  container.style.inset = '0';
+  container.style.overflow = 'visible';
+  container.style.pointerEvents = 'none';
+  container.style.zIndex = '5';
+  outer.appendChild(container);
+
+  const ring = document.createElement('div');
+  ring.className = 'burstRing';
+  ring.style.setProperty('--pc', color);
+  container.appendChild(ring);
+
+  const count = 20;
+  for(let i=0;i<count;i++){
+    const p = document.createElement('div');
+    const isSpark = i % 3 === 0;
+    p.className = 'particle' + (isSpark ? ' spark' : '');
+    const angle = (Math.PI*2*i/count) + (Math.random()*0.4 - 0.2);
+    const dist = 46 + Math.random()*60;
+    p.style.setProperty('--px', Math.cos(angle)*dist + 'px');
+    p.style.setProperty('--py', Math.sin(angle)*dist + 'px');
+    p.style.setProperty('--pr', (Math.random()*360) + 'deg');
+    p.style.setProperty('--pc', color);
+    p.style.animationDelay = (Math.random()*0.08) + 's';
+    if(isSpark){
+      p.style.transform = `translate(-50%,-50%) rotate(${angle}rad)`;
+    }
+    container.appendChild(p);
+  }
+
+  setTimeout(() => container.remove(), 950);
+}
+
+function renderLegend(){
+  const legend = document.getElementById('legend');
+  const items = [
+    {label:'Select', color:'#1f5c86'},
+    {label:'Deluxe', color:'#128a72'},
+    {label:'Premium', color:'#8a2555'},
+    {label:'Exclusive', color:GOLD},
+  ];
+  legend.innerHTML = items.map(it => `<span><span class="dot" style="background:${it.color}"></span>${it.label}</span>`).join('');
+  legend.style.display = 'flex';
+}
+
+function openCard(i, outerEl, innerEl, offer){
+  if(openedFlags[i]) return;
+  openedFlags[i] = true;
+
+  innerEl.classList.add('flipped');
+  const color = RARITY_COLOR[offer.rarity] || '#fff';
+  // fire the particle burst roughly when the card is edge-on mid-flip
+  setTimeout(() => spawnParticles(outerEl, color), 260);
+
+  openCount++;
+  savedTotal += (offer.price - offer.finalPrice);
+  document.getElementById('openCount').textContent = openCount;
+  document.getElementById('savedTotal').textContent = savedTotal;
+}
+
+function newMarket(){
+  offers = generateMarket();
+  openedFlags = Array(6).fill(false);
+  document.getElementById('daysLeft').textContent = randInt(1,28) + ' DAYS';
+    openCount = 0;
+  savedTotal = 0;
+  document.getElementById('openCount').textContent = 0;
+  document.getElementById('savedTotal').textContent = 0;
+  render();
+}
+
+async function init(){
+  await loadData();
+  document.getElementById('status').style.display = 'none';
+  document.getElementById('grid').style.display = 'grid';
+  document.getElementById('footerRow').style.display = 'flex';
+  document.getElementById('disclaimer').style.display = 'block';
+  if(usingFallback === true){
+    const d = document.getElementById('disclaimer');
+    d.innerHTML = 'Live valorant-api.com data was unreachable in this environment — showing generated placeholder names/art instead of real skin data.<br>' + d.innerHTML;
+  } else if(usingFallback === 'partial'){
+    const d = document.getElementById('disclaimer');
+    d.innerHTML = 'Live valorant-api.com data loaded, but one or more rarity tiers had too few matches — those tiers were topped up with placeholder entries so all rarities still appear; other tiers show real art.<br>' + d.innerHTML;
+  }
+  renderLegend();
+  document.getElementById('rerollBtn').addEventListener('click', newMarket);
+  newMarket();
+}
+
+init();
+</script>
+</body>
+</html>
