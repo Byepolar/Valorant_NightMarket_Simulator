@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NIGHT.MARKET SIM</title>
+<style>
+  :root{
+    --bg:#0a0d12;
+    --text:#f2eefc;
+    --sub:#8391a3;
+    --red:#ff4655;
+    --coral:#ff8c85;
+    --gold:#e8b95e;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Segoe UI', Arial, sans-serif;
+    padding:0 0 60px;
+    overflow-x:hidden;
+    position:relative;
+  }
+  .bgLayer{
+    position:fixed;
+    top:-6%;left:-6%;width:112%;height:112%;
+    pointer-events:none;z-index:-2;
+    transition:transform .25s ease-out;
+    will-change:transform;
+  }
+  .bgLayer.glow{
+    background:radial-gradient(ellipse at 50% 15%, rgba(255,70,85,0.12), transparent 50%);
+  }
+  .bgLayer.grid{
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 64px),
+      repeating-linear-gradient(-45deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 64px);
+  }
+  .wrap{max-width:1220px;margin:0 auto;padding:0 20px;}
+
+  .titleBlock{text-align:center;margin-bottom:44px;padding-top:40px;}
+  .title{
+    font-size:60px;font-weight:900;letter-spacing:.02em;
+    color:var(--coral);
+    text-shadow:0 0 34px rgba(255,110,100,.35);
+    margin:0;
+  }
+  .subline{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    font-size:13px;letter-spacing:.12em;text-transform:uppercase;
+    color:#c7ccd6;margin-top:12px;
+  }
+  .subline b{color:var(--red);font-weight:800;}
+  .tick{width:26px;height:1px;background:rgba(255,255,255,.3);position:relative;}
+  .tick:before{content:"";position:absolute;right:0;top:-4px;width:1px;height:9px;background:rgba(255,255,255,.3);transform:rotate(30deg);}
+  .tick.left:before{left:0;right:auto;transform:rotate(-30deg);}
+  .rule{
+    width:340px;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(200,170,255,.5),transparent);
+    margin:14px auto 0;
+  }
+
+  .status{
+    text-align:center;color:var(--sub);font-size:13px;letter-spacing:.05em;
+    padding:60px 0;
+  }
+
+  .grid{
+    display:grid;grid-template-columns:repeat(6,1fr);gap:14px;
+  }
+  @media(max-width:900px){.grid{grid-template-columns:repeat(3,1fr);}}
+  @media(max-width:520px){.grid{grid-template-columns:repeat(2,1fr);}}
+
+  .card-outer{
+    aspect-ratio:3/4.1;
+    position:relative;
+    perspective:1100px;
+  }
+  .card-tilt{
+    width:100%;height:100%;
+    transition:transform .35s cubic-bezier(.2,.8,.2,1), filter .35s ease;
+    transform-style:preserve-3d;
+    will-change:transform;
+  }
+  .card-outer:hover .card-tilt{filter:brightness(1.08);}
+
+  .card-inner{
+    position:relative;width:100%;height:100%;
+    transform-style:preserve-3d;
+    transition:transform .7s cubic-bezier(.22,1,.36,1);
+  }
+  .card-inner.flipped{transform:rotateY(180deg);}
+
+  .card-face{
+    position:absolute;inset:0;
+    border-radius:2px;overflow:hidden;
+    backface-visibility:hidden;
+    -webkit-backface-visibility:hidden;
+    outline:1px solid rgba(255,255,255,.14);
+    outline-offset:-1px;
+  }
+  .card-face.front{cursor:pointer;}
+  .card-face.back{transform:rotateY(180deg);}
+
+  .card-face.front.locked{
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M20 2 L38 20 L20 38 L2 20 Z' fill='none' stroke='rgba(255,255,255,0.08)' stroke-width='1'/%3E%3C/svg%3E"),
+      linear-gradient(165deg,#232630,#101218);
+    display:flex;align-items:center;justify-content:center;
+    transition:box-shadow .35s ease;
+    animation:idleGlow 3.4s ease-in-out infinite;
+  }
+  .card-face.front.locked .diamond{
+    width:50px;height:50px;border:1px solid rgba(255,255,255,.28);
+    transform:rotate(45deg);position:relative;
+    transition:transform .35s ease, border-color .35s ease;
+  }
+  .card-face.front.locked .diamond:before{
+    content:"";position:absolute;inset:12px;border:1px solid rgba(255,255,255,.18);
+  }
+  .card-outer:hover .card-face.front.locked .diamond{
+    transform:rotate(225deg) scale(1.08);
+    border-color:rgba(255,255,255,.55);
+  }
+
+.card-face.front.locked.select{background:linear-gradient(165deg,#1b63d8,#09182d);box-shadow:0 0 20px rgba(32,120,255,.35);display:flex;align-items:center;justify-content:center;}
+.card-face.front.locked.deluxe{background:linear-gradient(165deg,#16b97c,#08231c);box-shadow:0 0 22px rgba(0,255,160,.25);display:flex;align-items:center;justify-content:center;}
+.card-face.front.locked.premium{background:linear-gradient(165deg,#d1548d,#340c22);box-shadow:0 0 28px rgba(209,84,141,.35);display:flex;align-items:center;justify-content:center;}
+.card-face.front.locked.exclusive{background:linear-gradient(165deg,#f0ca62,#4d3108);box-shadow:0 0 32px rgba(255,210,90,.45);display:flex;align-items:center;justify-content:center;}
+
+.card-outer:hover .card-face.front.locked.select{box-shadow:0 0 34px rgba(32,140,255,.6), 0 0 60px rgba(32,120,255,.25);}
+.card-outer:hover .card-face.front.locked.deluxe{box-shadow:0 0 36px rgba(0,255,170,.55), 0 0 62px rgba(0,255,160,.22);}
+.card-outer:hover .card-face.front.locked.premium{box-shadow:0 0 42px rgba(219,100,155,.6), 0 0 70px rgba(209,84,141,.3);}
+.card-outer:hover .card-face.front.locked.exclusive{box-shadow:0 0 48px rgba(255,220,110,.7), 0 0 80px rgba(255,210,90,.35);}
+
+@keyframes idleGlow{
+  0%,100%{filter:brightness(1);}
+  50%{filter:brightness(1.12);}
+}
+
+.card-face.back{
+    background:linear-gradient(165deg,var(--rc-a,#333),var(--rc-b,#111));
+    display:flex;flex-direction:column;justify-content:space-between;
+    padding:10px 10px 0;
+    box-shadow:0 0 24px rgba(0,0,0,.4), inset 0 0 40px rgba(255,255,255,.04);
+  }
+  .card-inner.flipped .card-face.back{animation:revealGlow .8s ease;}
+  .card-face.back{transition:box-shadow .25s ease;}
+  .card-outer.hovering .card-face.back{
+    box-shadow:0 0 30px rgba(255,255,255,.18), inset 0 0 40px rgba(255,255,255,.05), 0 0 0 1px rgba(255,255,255,.1) inset;
+  }
+  @keyframes revealGlow{
+    0%{filter:brightness(2.2) saturate(1.4);}
+    100%{filter:brightness(1) saturate(1);}
+  }
+
+  /* Faceted diagonal texture behind the art, like the real client's card backgrounds */
+  .card-face.back::before{
+    content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+    background-image:
+      repeating-linear-gradient(135deg, rgba(255,255,255,.05) 0 1px, transparent 1px 17px),
+      repeating-linear-gradient(45deg, rgba(255,255,255,.035) 0 1px, transparent 1px 17px);
+    opacity:.55;
+    -webkit-mask-image:radial-gradient(ellipse at 50% 40%, #000 55%, transparent 100%);
+    mask-image:radial-gradient(ellipse at 50% 40%, #000 55%, transparent 100%);
+  }
+  /* Small corner accent brackets framing the card, like the game's UI chrome */
+  .card-face::after{
+    content:"";position:absolute;inset:5px;z-index:2;pointer-events:none;
+    background:
+      linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,.5)) top left/13px 2px no-repeat,
+      linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,.5)) top left/2px 13px no-repeat,
+      linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,.5)) top right/13px 2px no-repeat,
+      linear-gradient(rgba(255,255,255,.5),rgba(255,255,255,.5)) top right/2px 13px no-repeat;
+    opacity:.65;
+  }
+
+  .particle{
+    position:absolute;top:50%;left:50%;width:5px;height:5px;border-radius:50%;
+    background:var(--pc,#fff);pointer-events:none;
+    box-shadow:0 0 6px 1px var(--pc,#fff);
+    animation:particleBurst .85s ease-out forwards;
+  }
+  .particle.spark{width:2px;height:10px;border-radius:1px;}
+  @keyframes particleBurst{
+    0%{transform:translate(-50%,-50%) translate(0,0) scale(1) rotate(0deg);opacity:1;}
+    100%{transform:translate(-50%,-50%) translate(var(--px),var(--py)) scale(0) rotate(var(--pr,180deg));opacity:0;}
+  }
+  @keyframes ringPulse{
+    0%{transform:translate(-50%,-50%) scale(.2);opacity:.8;}
+    100%{transform:translate(-50%,-50%) scale(2.6);opacity:0;}
+  }
+  .burstRing{
+    position:absolute;top:50%;left:50%;width:60px;height:60px;border-radius:50%;
+    border:2px solid var(--pc,#fff);pointer-events:none;
+    animation:ringPulse .6s ease-out forwards;
+  }
+
+  .detailOverlay{
+    position:fixed;inset:0;z-index:50;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(6,7,10,0);
+    backdrop-filter:blur(0px);-webkit-backdrop-filter:blur(0px);
+    opacity:0;pointer-events:none;
+    transition:opacity .3s ease, background .3s ease, backdrop-filter .3s ease;
+  }
+  .detailOverlay.open{
+    opacity:1;pointer-events:auto;
+    background:rgba(6,7,10,.72);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  }
+  .detailModal{
+    width:60vw;height:60vh;max-width:980px;max-height:640px;min-width:320px;min-height:380px;
+    background:linear-gradient(155deg,var(--rc-a,#232630),var(--rc-b,#101218));
+    border-radius:6px;position:relative;overflow:hidden;
+    box-shadow:0 20px 70px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06) inset;
+    transform:scale(.3);opacity:0;
+    transition:transform .38s cubic-bezier(.22,1,.36,1), opacity .28s ease;
+    display:flex;
+  }
+  .detailOverlay.open .detailModal{transform:scale(1);opacity:1;}
+
+  .detailClose{
+    position:absolute;top:14px;right:16px;z-index:2;
+    background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.15);color:#fff;
+    width:34px;height:34px;border-radius:50%;font-size:20px;line-height:1;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;
+    transition:background .15s ease, transform .15s ease;
+  }
+  .detailClose:hover{background:rgba(255,255,255,.15);transform:scale(1.08);}
+
+  .detailImgWrap{
+    flex:1.15;display:flex;align-items:center;justify-content:center;
+    padding:32px;position:relative;
+  }
+  .detailImgWrap img{max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 12px 30px rgba(0,0,0,.5));}
+  .detailImgWrap svg{width:55%;opacity:.5;}
+
+  .detailInfo{
+    flex:1;background:rgba(0,0,0,.22);padding:34px 30px;
+    display:flex;flex-direction:column;justify-content:center;gap:10px;
+    overflow-y:auto;
+  }
+  .detailInfo.hasMeta{justify-content:flex-start;}
+  .detailMeta{
+    display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;
+    margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.12);
+  }
+  .detailMeta .metaRow{display:flex;flex-direction:column;gap:2px;}
+  .detailMeta .metaRow span{font-size:9.5px;color:var(--sub);text-transform:uppercase;letter-spacing:.08em;}
+  .detailMeta .metaRow b{font-size:13px;font-weight:700;color:#fff;}
+  .detailFlavor{font-size:12px;line-height:1.55;color:#c7ccd6;opacity:.85;font-style:italic;margin:14px 0 0;}
+  .detailVariants{margin-top:14px;}
+  .variantsLabel{font-size:9.5px;color:var(--sub);text-transform:uppercase;letter-spacing:.08em;}
+  .swatchRow{display:flex;gap:8px;margin-top:6px;}
+  .swatchDot{
+    width:22px;height:22px;border-radius:50%;background-size:cover;background-position:center;
+    border:2px solid rgba(255,255,255,.25);background-color:#222;padding:0;cursor:pointer;
+    transition:transform .15s ease, border-color .15s ease;
+  }
+  .swatchDot:hover{transform:scale(1.12);border-color:rgba(255,255,255,.55);}
+  .swatchDot.active{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.2);}
+  .detailTierBadge{
+    align-self:flex-start;font-size:11px;font-weight:800;letter-spacing:.08em;
+    padding:4px 10px;border-radius:20px;border:1px solid;text-transform:uppercase;
+  }
+  .detailInfo h2{font-size:26px;margin:6px 0 0;letter-spacing:.01em;}
+  .detailWeapon{font-size:12px;opacity:.6;letter-spacing:.08em;font-weight:700;}
+  .detailPriceRow{display:flex;align-items:center;gap:10px;margin-top:14px;}
+  .detailOldPrice{text-decoration:line-through;opacity:.5;font-size:14px;}
+  .detailDiscount{background:var(--red);color:#fff;font-size:11px;font-weight:800;padding:3px 7px;border-radius:2px;}
+  .detailFinalPrice{font-size:32px;font-weight:800;color:#fff;}
+  .buyBtn{
+    margin-top:18px;padding:13px 20px;border:none;border-radius:3px;cursor:pointer;
+    background:var(--red);color:#fff;font-weight:800;letter-spacing:.05em;font-size:14px;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    transition:filter .15s ease, transform .1s ease;
+  }
+  .buyBtn:hover{filter:brightness(1.12);}
+  .buyBtn:active{transform:scale(.97);}
+  .buyBtn:disabled{background:#2c2f38;color:#ffffffaa;cursor:default;filter:none;}
+  .buySub{font-size:10px;font-weight:600;opacity:.75;letter-spacing:.02em;text-transform:none;}
+
+  @media (max-width:720px){
+    .detailModal{width:88vw;height:auto;max-height:82vh;flex-direction:column;overflow-y:auto;}
+    .detailImgWrap{flex:none;padding:24px 24px 0;}
+    .detailInfo{flex:none;}
+  }
+
+  .badgeRow{display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:3;}
+  .discBadge{
+    background:var(--red);color:#fff;font-size:11px;font-weight:800;
+    padding:4px 13px 4px 8px;
+    clip-path:polygon(0 0, 100% 0, 88% 50%, 100% 100%, 0 100%);
+    box-shadow:0 2px 8px rgba(0,0,0,.35);
+  }
+  .priceBox{text-align:right;}
+  .newP{font-size:13px;font-weight:800;color:#fff;display:flex;align-items:center;justify-content:flex-end;gap:4px;text-shadow:0 1px 3px rgba(0,0,0,.4);}
+  .newP .vpIcon{width:8px;height:8px;flex-shrink:0;}
+  .oldP{font-size:10px;color:#ff8f8f;text-decoration:line-through;margin-top:1px;}
+
+  .artZone{
+    flex:1;display:flex;align-items:center;justify-content:center;
+    padding:6px 0;position:relative;z-index:1;
+  }
+  .artZone img{max-width:92%;max-height:100%;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5));position:relative;z-index:1;}
+  .artShadow{
+    position:absolute;left:50%;bottom:8%;transform:translateX(-50%);
+    width:62%;height:12%;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,.5) 0%, transparent 72%);
+    filter:blur(2px);z-index:0;
+  }
+
+  .nameBar{
+    background:rgba(6,7,10,.78);
+    backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+    margin:0 -10px;padding:9px 12px 9px;
+    border-top:2px solid var(--nb-accent, rgba(255,255,255,.2));
+    position:relative;z-index:3;
+  }
+  .nameBar .skinName{
+    font-size:12px;font-weight:800;letter-spacing:.03em;line-height:1.25;
+    text-transform:uppercase;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .nameBar .wpnLine{
+    font-size:9.5px;color:var(--sub);letter-spacing:.1em;text-transform:uppercase;
+    margin-top:2px;font-weight:700;
+  }
+
+  .footerRow{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-top:36px;font-size:11px;color:var(--sub);letter-spacing:.05em;flex-wrap:wrap;gap:12px;
+  }
+  .rerollBtn{
+    background:transparent;color:var(--text);border:1px solid rgba(255,255,255,.3);
+    padding:10px 20px;font-weight:700;letter-spacing:.1em;font-size:12px;
+    text-transform:uppercase;cursor:pointer;border-radius:2px;
+  }
+  .rerollBtn:hover{background:rgba(255,255,255,.08);}
+  .rerollBtn:disabled{opacity:.4;cursor:default;}
+  .disclaimer{opacity:.55;text-align:center;font-size:10px;margin-top:22px;letter-spacing:.03em;line-height:1.6;}
+  .legend{display:flex;justify-content:center;gap:16px;margin-top:16px;flex-wrap:wrap;font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+
+  .sessionStats{
+    display:flex;justify-content:center;gap:22px;margin-top:14px;flex-wrap:wrap;
+    font-size:10px;color:var(--sub);letter-spacing:.06em;text-transform:uppercase;
+  }
+  .sessionStats b{color:#fff;font-weight:800;}
+
+  .collectionBtn{
+    position:fixed;bottom:22px;right:22px;z-index:40;
+    background:#12141a;border:1px solid rgba(255,255,255,.18);color:#fff;
+    padding:12px 18px;border-radius:30px;font-weight:800;font-size:12px;
+    letter-spacing:.06em;cursor:pointer;display:flex;align-items:center;gap:8px;
+    box-shadow:0 8px 24px rgba(0,0,0,.4);transition:transform .15s ease, background .15s ease;
+  }
+  .collectionBtn:hover{background:#1b1e26;transform:translateY(-2px);}
+  .collectionBtn .collCount{
+    background:var(--red);color:#fff;border-radius:20px;padding:2px 8px;font-size:11px;
+  }
+
+  .collectionOverlay{
+    position:fixed;inset:0;z-index:55;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(6,7,10,0);
+    backdrop-filter:blur(0px);-webkit-backdrop-filter:blur(0px);
+    opacity:0;pointer-events:none;
+    transition:opacity .3s ease, background .3s ease, backdrop-filter .3s ease;
+  }
+  .collectionOverlay.open{
+    opacity:1;pointer-events:auto;
+    background:rgba(6,7,10,.72);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  }
+  .collectionPanel{
+    width:74vw;max-width:1040px;height:76vh;max-height:760px;min-width:320px;
+    background:#101218;border-radius:6px;position:relative;overflow:hidden;
+    box-shadow:0 20px 70px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06) inset;
+    transform:scale(.3);opacity:0;
+    transition:transform .38s cubic-bezier(.22,1,.36,1), opacity .28s ease;
+    display:flex;flex-direction:column;
+  }
+  .collectionOverlay.open .collectionPanel{transform:scale(1);opacity:1;}
+  .collectionHeader{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:20px 24px;border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  .collectionHeader h2{margin:0;font-size:18px;letter-spacing:.04em;}
+
+  .collectionFilters{
+    display:flex;gap:10px;padding:14px 24px;flex-wrap:wrap;align-items:center;
+    border-bottom:1px solid rgba(255,255,255,.06);
+  }
+  .filterChip{
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--sub);
+    padding:6px 13px;border-radius:20px;font-size:11px;letter-spacing:.04em;
+    text-transform:uppercase;cursor:pointer;font-weight:700;transition:all .15s ease;
+  }
+  .filterChip:hover{color:#fff;border-color:rgba(255,255,255,.3);}
+  .filterChip.active{background:#fff;color:#0a0d12;border-color:#fff;}
+  .collectionFilters select{
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;
+    padding:7px 10px;border-radius:20px;font-size:11px;letter-spacing:.02em;
+    text-transform:uppercase;cursor:pointer;margin-left:auto;
+  }
+  .collectionFilters select option{
+    background:#14161d;color:#fff;
+  }
+
+  .collectionList{flex:1;overflow-y:auto;padding:10px 16px 20px;}
+  .collectionItem{
+    display:flex;align-items:center;gap:16px;padding:12px 12px;border-radius:4px;
+    transition:background .15s ease;
+  }
+  .collectionItem:hover{background:rgba(255,255,255,.04);}
+  .collectionItem .thumb{
+    width:64px;height:48px;border-radius:3px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+    background:linear-gradient(155deg,var(--rc-a,#232630),var(--rc-b,#101218));
+  }
+  .collectionItem .thumb img{max-width:90%;max-height:90%;object-fit:contain;}
+  .collectionItem .thumb svg{width:70%;opacity:.6;}
+  .collectionItem .meta{flex:1;min-width:0;}
+  .collectionItem .metaName{font-weight:800;font-size:13px;letter-spacing:.02em;}
+  .collectionItem .metaSub{font-size:10px;color:var(--sub);letter-spacing:.04em;margin-top:2px;text-transform:uppercase;}
+  .collectionItem .metaPrice{text-align:right;flex-shrink:0;}
+  .collectionItem .metaPrice b{display:block;font-size:14px;color:#fff;}
+  .collectionItem .metaPrice span{font-size:10px;color:var(--sub);}
+  .emptyCollection{
+    text-align:center;color:var(--sub);font-size:13px;padding:60px 20px;letter-spacing:.03em;
+  }
+
+  .screenFlash{
+    position:fixed;inset:0;z-index:45;pointer-events:none;
+    background:radial-gradient(circle at 50% 45%, var(--fc,#fff) 0%, transparent 68%);
+    opacity:0;
+  }
+  @keyframes flashPulse{
+    0%{opacity:0;}
+    18%{opacity:var(--fpeak,.35);}
+    100%{opacity:0;}
+  }
+  .screenFlash.firing{animation:flashPulse .55s ease-out forwards;}
+
+</style>
+</head>
+<body>
+<div class="bgLayer glow" id="bgGlow"></div>
+<div class="bgLayer grid" id="bgGrid"></div>
+<div class="wrap">
+  <div class="titleBlock">
+    <h1 class="title">NIGHT.MARKET</h1>
+    <div class="subline"><span class="tick left"></span>ENDS IN <b id="daysLeft">12 DAYS</b> · TAP TO REVEAL<span class="tick"></span></div>
+  </div>
+
+  <div style="text-align:center;font-size:10px;color:var(--sub);letter-spacing:.08em;text-transform:uppercase;margin-bottom:30px;opacity:.6;">
+    DATA: VALORANT-API.COM (OPEN/UNOFFICIAL) &nbsp;·&nbsp; PRICES SIMULATED &nbsp;·&nbsp; NOT AFFILIATED WITH RIOT
+  </div>
+
+  <div id="status" class="status">Loading live skin data…</div>
+  <div class="grid" id="grid" style="display:none;"></div>
+  <div class="legend" id="legend" style="display:none;"></div>
+
+  <div class="footerRow" id="footerRow" style="display:none;">
+    <div>OPENED <b style="color:#fff" id="openCount">0</b>/6</div>
+    <button class="rerollBtn" id="rerollBtn">NEW MARKET</button>
+    <div>SAVED <b style="color:#fff" id="savedTotal">0</b> VP</div>
+  </div>
+
+  <div class="sessionStats" id="sessionStats" style="display:none;">
+    <span>MARKETS SEEN <b id="statMarkets">0</b></span>
+    <span>SESSION SPENT <b id="statSpent">0</b> VP</span>
+    <span>SESSION SAVED <b id="statSaved">0</b> VP</span>
+  </div>
+
+  <div class="disclaimer" id="disclaimer" style="display:none;">
+    Real skin names, weapons &amp; art pulled live from the open valorant-api.com dataset, filtered to the actual Night Market&ndash;eligible collections · unofficial fan tool, not affiliated with Riot Games.<br>
+    Only Select, Deluxe &amp; Premium collections appear, matching Riot's real eligibility list — Ultra Edition, non-eligible collections, and melee skins over 3,550 VP never show up. Discounts run 10–49% (Riot has not published a weighting within that range, so this simulates a uniform roll). Quality floor: at least 2 of your 6 offers are guaranteed Premium Edition or knife/melee tier, and no weapon repeats more than twice.
+  </div>
+</div>
+
+<div class="detailOverlay" id="detailOverlay">
+  <div class="detailModal" id="detailModal"></div>
+</div>
+
+<button class="collectionBtn" id="collectionBtn">COLLECTION <span class="collCount" id="collCount">0</span></button>
+
+<div class="collectionOverlay" id="collectionOverlay">
+  <div class="collectionPanel">
+    <div class="collectionHeader">
+      <h2>YOUR COLLECTION</h2>
+      <button class="detailClose" id="collectionClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="collectionFilters" id="collectionFilters"></div>
+    <div class="collectionList" id="collectionList"></div>
+  </div>
+</div>
+
+<div class="screenFlash" id="screenFlash"></div>
+
+<script>
+const GOLD = '#e8b95e';
+
+// ---- Sound effects (synthesized via Web Audio API — no external audio files needed) ----
+let audioCtx = null;
+function getAudioCtx(){
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function playTone(freq, duration, type, gainPeak, delay){
+  try{
+    const ctx = getAudioCtx();
+    const t0 = ctx.currentTime + (delay || 0);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.linearRampToValueAtTime(gainPeak || 0.12, t0 + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + duration + 0.03);
+  }catch(e){ /* audio not available in this environment — fail silently */ }
+}
+function playFlip(){
+  try{
+    const ctx = getAudioCtx();
+    const t0 = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(220, t0);
+    osc.frequency.exponentialRampToValueAtTime(680, t0 + 0.18);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.linearRampToValueAtTime(0.11, t0 + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t0); osc.stop(t0 + 0.25);
+  }catch(e){}
+}
+function playReveal(rarity){
+  const freqBase = {select:440, deluxe:523.25, premium:659.25, exclusive:880}[rarity] || 440;
+  playTone(freqBase, 0.5, 'sine', 0.16, 0);
+  playTone(freqBase * 1.5, 0.45, 'sine', 0.09, 0.05);
+}
+function playModalOpen(){
+  playTone(320, 0.22, 'sine', 0.1, 0);
+  playTone(520, 0.18, 'sine', 0.07, 0.05);
+}
+function playModalClose(){
+  playTone(280, 0.15, 'sine', 0.09, 0);
+}
+function playClick(){
+  playTone(700, 0.07, 'square', 0.05, 0);
+}
+function playHover(){
+  playTone(900, 0.05, 'sine', 0.025, 0); // very quiet, quick tick so it doesn't get annoying on repeat hovers
+}
+
+// Real Night Market eligible collections, from Riot/community data (user-provided spreadsheet)
+const ELIGIBLE_COLLECTIONS = {
+  Select: ["Convex","Daydreams","Endeavour","Fortune's Hand","Galleria","Infantry","Intergrade","Luxe","Prism II","Reverie","Rupture","Rush","Sensation","Smite","Storm Maw","Switchback","Wonderstallion"],
+  Deluxe: ["Abyssal","Altitude","Aperture","Aristocrat","Avalanche","Chromedek","Combat Crafts","Emberclad","Holomoku","Horizon","Kohaku & Matsuba","Luna","Minima","MK.VII Liberty","Nanomight","Nunca Olvidados","Orion","Prism","Sakura","Silvanus","Snowfall","Team Ace","Titanmail","Tigris","Undercity","Wasteland","Winterwunderland"],
+  Premium: ["Aemondir","Celestial","Crimsonbeast","Cryostasis","Doodle Buds","Ego","Forsaken","Gaia's Vengeance","Gravitational Uranium Neuroblaster","Ion","Magepunk","Magepunk 2.0","Magepunk 3.0","Mystbloom","Nebula","Neptune","Oni","Origin","Prime","Prime 2.0","Radiant Crisis 001","Recon","Reaver","Reaver 2.0","Soulstrife","Sovereign","Spline","Tethered Realms","VALORANT GO! Vol.1","VALORANT GO! Vol.2","VALORANT GO! Vol.3","Xenohunter"],
+};
+function normName(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]/g,''); }
+const ELIGIBLE_SET = new Set(
+  Object.values(ELIGIBLE_COLLECTIONS).flat().map(normName)
+);
+// normalized theme name -> exact bundle name as spelled in the spreadsheet
+const CANONICAL_BUNDLE = {};
+Object.values(ELIGIBLE_COLLECTIONS).flat().forEach(n => { CANONICAL_BUNDLE[normName(n)] = n; });
+
+// Friendly labels for the API's raw weapon category enum
+const CATEGORY_LABELS = {
+  'EEquippableCategory::Sidearm':'Sidearm',
+  'EEquippableCategory::SMG':'SMG',
+  'EEquippableCategory::Shotgun':'Shotgun',
+  'EEquippableCategory::Rifle':'Rifle',
+  'EEquippableCategory::Sniper':'Sniper',
+  'EEquippableCategory::Heavy':'Heavy',
+  'EEquippableCategory::Melee':'Melee',
+};
+
+// When each collection originally launched (Episode/Act, or Season/Act post-2024),
+// compiled from community release-date archives — shown as a fun-fact in the detail
+// panel, not sourced live from valorant-api (which doesn't expose release dates).
+const RELEASE_INFO = {};
+[
+  ["Convex","Episode 1, Act 1"],["Galleria","Episode 1, Act 1"],["Luxe","Episode 1, Act 1"],
+  ["Rush","Episode 1, Act 1"],["Aristocrat","Episode 1, Act 1"],["Avalanche","Episode 1, Act 1"],
+  ["Prism","Episode 1, Act 1"],["Oni","Episode 1, Act 1"],["Prime","Episode 1, Act 1"],
+  ["Sovereign","Episode 1, Act 1"],
+  ["Smite","Episode 1, Act 2"],["Gravitational Uranium Neuroblaster","Episode 1, Act 2"],
+  ["Ego","Episode 1, Act 2"],["Nebula","Episode 1, Act 2"],["Spline","Episode 1, Act 2"],
+  ["Sensation","Episode 1, Act 3"],["Wasteland","Episode 1, Act 3"],["Winterwunderland","Episode 1, Act 3"],
+  ["Ion","Episode 1, Act 3"],["Reaver","Episode 1, Act 3"],
+  ["Prism II","Episode 2, Act 1"],["Horizon","Episode 2, Act 1"],["Celestial","Episode 2, Act 1"],
+  ["VALORANT GO! Vol.1","Episode 2, Act 1"],
+  ["Infantry","Episode 2, Act 2"],["Silvanus","Episode 2, Act 2"],["Magepunk","Episode 2, Act 2"],
+  ["Prime 2.0","Episode 2, Act 2"],
+  ["Minima","Episode 2, Act 3"],["Tethered Realms","Episode 2, Act 3"],["Origin","Episode 2, Act 3"],
+  ["Forsaken","Episode 2, Act 3"],
+  ["Sakura","Episode 3, Act 1"],["Recon","Episode 3, Act 1"],
+  ["Nunca Olvidados","Episode 3, Act 2"],["VALORANT GO! Vol.2","Episode 3, Act 2"],
+  ["Radiant Crisis 001","Episode 3, Act 3"],["Snowfall","Episode 3, Act 3"],["Magepunk 2.0","Episode 3, Act 3"],
+  ["Tigris","Episode 4, Act 1"],["Undercity","Episode 4, Act 1"],
+  ["Gaia's Vengeance","Episode 4, Act 2"],["Team Ace","Episode 4, Act 2"],["Endeavour","Episode 4, Act 2"],
+  ["Doodle Buds","Episode 4, Act 2"],
+  ["Titanmail","Episode 4, Act 3"],["Neptune","Episode 4, Act 3"],["Xenohunter","Episode 4, Act 3"],
+  ["Reaver 2.0","Episode 5, Act 1"],
+  ["Kohaku & Matsuba","Episode 5, Act 2"],["Crimsonbeast","Episode 5, Act 2"],
+  ["Soulstrife","Episode 5, Act 3"],["Abyssal","Episode 5, Act 3"],["Cryostasis","Episode 5, Act 3"],
+  ["Luna","Episode 6, Act 1"],["Reverie","Episode 6, Act 1"],
+  ["Altitude","Episode 6, Act 2"],
+  ["Magepunk 3.0","Episode 6, Act 3"],
+  ["Daydreams","Episode 7, Act 1"],
+  ["Intergrade","Episode 7, Act 2"],["Orion","Episode 7, Act 2"],
+  ["Chromedek","Episode 7, Act 3"],
+  ["Emberclad","Episode 8, Act 1"],["MK.VII Liberty","Episode 8, Act 1"],
+  ["Fortune's Hand","Episode 8, Act 2"],["Switchback","Episode 8, Act 2"],
+  ["Mystbloom","Episode 8, Act 3"],["Holomoku","Episode 8, Act 3"],["Aemondir","Episode 8, Act 3"],
+  ["Wonderstallion","Episode 9, Act 1"],
+  ["Aperture","Episode 9, Act 2"],
+  ["Combat Crafts","Episode 9, Act 3"],
+  ["Storm Maw","Season 2025, Act 2"],
+  ["VALORANT GO! Vol.3","Season 2025, Act 3"],["Rupture","Season 2025, Act 3"],
+  ["Nanomight","Season 2025, Act 6"],
+].forEach(([name, when]) => { RELEASE_INFO[normName(name)] = when; });
+
+let contentTiers = {};
+let themes = {};
+let gunPool = [];
+let meleePool = [];
+let usingFallback = false;
+let collectionSizeByName = {}; // snapshot of how many NM-eligible skins each collection has, taken at load time
+
+function computeCollectionSizes(){
+  collectionSizeByName = {};
+  gunPool.concat(meleePool).forEach(e => {
+    collectionSizeByName[e.name] = (collectionSizeByName[e.name] || 0) + 1;
+  });
+}
+
+let offers = [];
+let openedFlags = [];
+let purchasedFlags = []; // tracks which specific card slots in the current market have already been bought
+let openCount = 0;
+let savedTotal = 0;
+
+// Session-wide (never resets on reroll, only on a full page reload — nothing persisted)
+let sessionMarketsSeen = 0;
+let sessionSpent = 0;
+let sessionSaved = 0;
+let ownedSkins = []; // purchased offers, each with a purchasedAt timestamp
+let collectionFilter = { rarity:'all', weapon:'all', sort:'newest' };
+let countdownInterval = null;
+
+
+function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+async function loadData(){
+  let partialTiers = [];
+  try{
+    const [tiersRes, weaponsRes, themesRes] = await Promise.all([
+      fetch('https://valorant-api.com/v1/contenttiers?language=en-US'),
+      fetch('https://valorant-api.com/v1/weapons?language=en-US'),
+      fetch('https://valorant-api.com/v1/themes?language=en-US')
+    ]);
+    if(!tiersRes.ok || !weaponsRes.ok || !themesRes.ok) throw new Error('bad response');
+    const tiersJson = await tiersRes.json();
+    const weaponsJson = await weaponsRes.json();
+    const themesJson = await themesRes.json();
+
+    tiersJson.data.forEach(t => contentTiers[t.uuid] = t);
+    themesJson.data.forEach(t => themes[t.uuid] = t);
+
+    // Cross-check the hardcoded eligibility list against real live theme names —
+    // drop anything that doesn't match an actual theme currently in the game
+    // (renamed/removed collections) instead of silently keeping a dead reference.
+    const liveThemeNorms = new Set(themesJson.data.map(t => normName(t.displayName)));
+    const droppedNames = [];
+    Object.keys(ELIGIBLE_COLLECTIONS).forEach(tierKey => {
+      ELIGIBLE_COLLECTIONS[tierKey] = ELIGIBLE_COLLECTIONS[tierKey].filter(name => {
+        const norm = normName(name);
+        if(liveThemeNorms.has(norm)) return true;
+        droppedNames.push(tierKey + ': ' + name);
+        delete CANONICAL_BUNDLE[norm];
+        ELIGIBLE_SET.delete(norm);
+        return false;
+      });
+    });
+    if(droppedNames.length){
+      console.warn('Night Market: removed collection names with no matching live theme —', droppedNames);
+    }
+
+    weaponsJson.data.forEach(w => {
+      const isMelee = w.category === 'EEquippableCategory::Melee';
+      (w.skins || []).forEach(s => {
+        if(!s.contentTierUuid) return; // skip default/standard (non-purchasable) skins
+        const tier = contentTiers[s.contentTierUuid];
+        if(!tier) return;
+        if(tier.displayName === 'Ultra Edition' && !isMelee) return; // Ultra never appears in real market
+        const themeName = themes[s.themeUuid] ? themes[s.themeUuid].displayName : '';
+        const bundleName = CANONICAL_BUNDLE[normName(themeName)];
+        if(!bundleName) return; // only real Night Market eligible collections (spreadsheet list)
+        const img = s.displayIcon
+          || (s.chromas && s.chromas[0] && (s.chromas[0].displayIcon || s.chromas[0].fullRender))
+          || (s.levels && s.levels[0] && s.levels[0].displayIcon);
+        if(!img) return;
+        const chromas = (s.chromas || []).filter(c => c.swatch);
+        const chromaVariants = chromas.slice(0,6).map(c => ({
+          swatch: c.swatch,
+          img: c.displayIcon || c.fullRender || c.swatch
+        }));
+        const entry = {
+          name: bundleName,
+          weapon: isMelee ? 'Melee' : w.displayName,
+          weaponType: isMelee ? 'Melee' : (CATEGORY_LABELS[w.category] || w.category || ''),
+          img,
+          tierName: tier.displayName,
+          tierColor: isMelee ? GOLD : ('#' + (tier.highlightColor || 'bbbbbbff').slice(0,6)),
+          isMelee,
+          chromaCount: chromas.length,
+          chromaVariants,
+          released: RELEASE_INFO[normName(bundleName)] || null
+        };
+        (isMelee ? meleePool : gunPool).push(entry);
+      });
+    });
+
+    if(gunPool.length < 6){ throw new Error('empty pool'); }
+
+    // gunPool.length passing doesn't guarantee every tier is represented — if the
+    // hardcoded ELIGIBLE_COLLECTIONS names have drifted from the live API's current
+    // theme names, a tier like Deluxe or Premium can end up with very few matches
+    // while Select still fills the pool. Rather than discarding all the real (live,
+    // real-art) data over that, only backfill the specific thin tier(s) with
+    // placeholder entries so every rarity is still represented in the market.
+    const TIER_KEYS = {select:'Select Edition', deluxe:'Deluxe Edition', premium:'Premium Edition'};
+    const MIN_PER_TIER = 3;
+    Object.entries(TIER_KEYS).forEach(([key, devName]) => {
+      const existing = gunPool.filter(e => e.tierName === devName);
+      if(existing.length < MIN_PER_TIER){
+        const existingNames = new Set(existing.map(e => e.name));
+        const collKey = key.charAt(0).toUpperCase() + key.slice(1);
+        const fillNames = (ELIGIBLE_COLLECTIONS[collKey] || []).filter(n => !existingNames.has(n));
+        gunPool = gunPool.concat(fallbackEntriesForTier(devName, fillNames));
+        partialTiers.push(key);
+      }
+    });
+    if(meleePool.length < 3){
+      const existingNames = new Set(meleePool.map(e => e.name));
+      meleePool = meleePool.concat(fallbackMeleeEntries().filter(e => !existingNames.has(e.name)));
+      partialTiers.push('melee');
+    }
+  }catch(e){
+    console.warn('Night Market: live API unreachable, using fully offline pool —', e.message);
+    usingFallback = true;
+    buildFallbackPools();
+    computeCollectionSizes();
+    return;
+  }
+  if(partialTiers.length){
+    console.warn('Night Market: live API reachable but thin on', partialTiers.join(', '), '— backfilled with placeholder entries for those tiers only; other tiers keep real art.');
+    usingFallback = 'partial';
+  }
+  computeCollectionSizes();
+}
+
+const FALLBACK_WEAPONS = ["Vandal","Phantom","Operator","Spectre","Sheriff","Ghost","Bulldog","Judge"];
+const FALLBACK_TIER_COLOR = {
+  'Select Edition':'#8a92a0',
+  'Deluxe Edition':'#5ee6d0',
+  'Premium Edition':'#6f8cff',
+};
+function fallbackEntriesForTier(tierDevName, names){
+  return names.map(n => ({
+    name: n,
+    weapon: pick(FALLBACK_WEAPONS),
+    weaponType: '',
+    img: null,
+    tierName: tierDevName,
+    tierColor: FALLBACK_TIER_COLOR[tierDevName] || '#8a92a0',
+    isMelee:false,
+    chromaCount: 0,
+    chromaVariants: [],
+    released: RELEASE_INFO[normName(n)] || null
+  }));
+}
+function fallbackMeleeEntries(){
+  return Object.values(ELIGIBLE_COLLECTIONS).flat().slice(0,8).map(n => ({
+    name: n,
+    weapon: 'Melee',
+    weaponType: 'Melee',
+    img: null,
+    tierName: 'Exclusive Edition',
+    tierColor: GOLD,
+    isMelee: true,
+    chromaCount: 0,
+    chromaVariants: [],
+    released: RELEASE_INFO[normName(n)] || null
+  }));
+}
+
+// Full offline fallback in case the live API can't be reached from this environment at all
+function buildFallbackPools(){
+  gunPool = [
+    ...fallbackEntriesForTier('Select Edition', ELIGIBLE_COLLECTIONS.Select),
+    ...fallbackEntriesForTier('Deluxe Edition', ELIGIBLE_COLLECTIONS.Deluxe),
+    ...fallbackEntriesForTier('Premium Edition', ELIGIBLE_COLLECTIONS.Premium),
+  ];
+  meleePool = fallbackMeleeEntries();
+}
+
+function priceRangeFor(entry){
+  if(entry.isMelee) return [2900, 3550];
+  switch(entry.tierName){
+    case 'Select Edition': return [875, 1275];
+    case 'Deluxe Edition': return [1275, 1775];
+    case 'Premium Edition': return [1775, 2475];
+    case 'Exclusive Edition': return [2475, 2975];
+    default: return [1275, 2475];
+  }
+}
+
+// Full-card background gradients per tier, matched to the real in-game look
+function tierGradient(entry){
+  if(entry.isMelee) return ['#c98a2e','#3a2308']; // gold/orange for knives
+  switch(entry.tierName){
+    case 'Select Edition': return ['#1f5c86','#0a1f30'];   // blue
+    case 'Deluxe Edition': return ['#128a72','#062821'];   // teal/green
+    case 'Premium Edition': return ['#8a2555','#2a0a1c'];  // maroon/pink
+    case 'Exclusive Edition': return ['#b0246e','#320a20'];
+    default: return ['#3a3f4c','#15171d'];
+  }
+}
+
+// Riot documents the discount range as 10%-49% but has never published a weighting
+// curve for where in that range offers tend to land, so this uses a plain uniform
+// roll across the full range rather than inventing a distribution.
+function rollDiscount(){
+  return randInt(10, 49);
+}
+function makeOffer(entry){
+ const [lo,hi]=priceRangeFor(entry);
+ const price=randInt(lo,hi);
+ const discount=rollDiscount();
+ const finalPrice=Math.round(price*(1-discount/100));
+ const [rcA,rcB]=tierGradient(entry);
+ let rarity='select';
+ if(entry.isMelee) rarity='exclusive';
+ else if(entry.tierName==='Premium Edition') rarity='premium';
+ else if(entry.tierName==='Deluxe Edition') rarity='deluxe';
+ return {...entry,price,discount,finalPrice,rcA,rcB,rarity};
+}
+
+// Builds a full 6-card market following Riot's documented Night Market rules
+// (patch v2.02 "quality floor" + support-verified constraints):
+// - Quality floor: at least 2 of the 6 offers are Premium Edition guns or knives/melees
+// - No duplicate skin in the same market
+// - No more than 2 skins for the same weapon type
+// - Everything else (which of the remaining tiers show up, and each discount %)
+//   is drawn uniformly at random from the eligible pool / the 10-49% range
+function generateMarket(){
+  const premiumPool = gunPool.filter(e => e.tierName === 'Premium Edition');
+  const highTierPool = premiumPool.concat(meleePool); // "Premium-or-knife" quality floor pool
+  const chosen = [];
+  const usedNames = new Set();
+  const weaponCounts = {};
+
+  function tryAdd(entry){
+    if(!entry) return false;
+    if(usedNames.has(entry.name)) return false;
+    if((weaponCounts[entry.weapon] || 0) >= 2) return false; // max 2 per weapon
+    chosen.push(entry);
+    usedNames.add(entry.name);
+    weaponCounts[entry.weapon] = (weaponCounts[entry.weapon] || 0) + 1;
+    return true;
+  }
+
+  // Quality floor: guarantee at least 2 Premium-or-knife offers
+  let guaranteed = 0;
+  let guard = 0;
+  while(guaranteed < 2 && highTierPool.length && guard < 50){
+    guard++;
+    if(tryAdd(pick(highTierPool))) guaranteed++;
+  }
+
+  // fill the rest from the full gun+melee pool
+  const fullPool = gunPool.concat(meleePool);
+  guard = 0;
+  while(chosen.length < 6 && guard < 200){
+    guard++;
+    tryAdd(pick(fullPool));
+  }
+
+  // last resort if pool is tiny: relax the weapon cap rather than leave an empty grid
+  guard = 0;
+  while(chosen.length < 6 && fullPool.length && guard < 200){
+    guard++;
+    const entry = pick(fullPool);
+    if(!usedNames.has(entry.name)){
+      chosen.push(entry);
+      usedNames.add(entry.name);
+    }
+  }
+
+  // shuffle so the guaranteed high-tier slots aren't always first
+  for(let i = chosen.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [chosen[i], chosen[j]] = [chosen[j], chosen[i]];
+  }
+
+  return chosen.slice(0,6).map(makeOffer);
+}
+
+function iconSVGFallback(){
+  return `<svg viewBox="0 0 200 70" xmlns="http://www.w3.org/2000/svg" style="width:80%;opacity:.9">
+    <g fill="#dfe7ea">
+      <rect x="10" y="30" width="120" height="14" rx="3"/>
+      <rect x="120" y="20" width="14" height="24" rx="2"/>
+      <rect x="134" y="26" width="40" height="10" rx="2"/>
+      <rect x="30" y="44" width="10" height="20" rx="2"/>
+    </g>
+  </svg>`;
+}
+
+// Small VP (points) diamond icon shown next to prices, mirroring the real client's currency mark
+function vpIconSVG(){
+  return `<svg class="vpIcon" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg"><path d="M5 0 L10 5 L5 10 L0 5 Z" fill="${GOLD}"/></svg>`;
+}
+
+const RARITY_COLOR = {select:'#4fa8e8', deluxe:'#1fd9a0', premium:'#e066a0', exclusive:GOLD};
+
+// Short original blurb for the detail panel — templated rather than scraped from
+// Riot's real store copy, but flavored by tier/weapon so it doesn't feel generic.
+// Deterministic per skin name so it doesn't reshuffle every time the modal reopens.
+const FLAVOR_TEMPLATES = [
+  "Part of the {name} line, prized by collectors for its {adj} finish.",
+  "A {adj} pick from the {name} collection, built to turn heads on the {weapon}.",
+  "One of the standout pieces in the {name} set, carrying {adj} styling into every round.",
+  "Straight from the {name} collection — {adj} detailing on a battle-tested {weapon}.",
+];
+const TIER_ADJ = {select:'clean, understated', deluxe:'sharp, upgraded', premium:'high-shine, animated', exclusive:'showcase-grade, fully animated'};
+function flavorTextFor(offer){
+  const adj = TIER_ADJ[offer.rarity] || 'distinct';
+  let h = 0;
+  for(const ch of offer.name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const t = FLAVOR_TEMPLATES[h % FLAVOR_TEMPLATES.length];
+  return t.replace('{name}', offer.name).replace('{adj}', adj).replace(/{weapon}/g, offer.weapon);
+}
+
+function render(){
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  offers.forEach((o,i)=>{
+    const outer = document.createElement('div');
+    outer.className = 'card-outer';
+
+    const tilt = document.createElement('div');
+    tilt.className = 'card-tilt';
+
+    const inner = document.createElement('div');
+    inner.className = 'card-inner' + (openedFlags[i] ? ' flipped' : '');
+
+    const front = document.createElement('div');
+    front.className = 'card-face front locked ' + o.rarity;
+    front.innerHTML = `<div class="diamond"></div>`;
+
+    const back = document.createElement('div');
+    back.className = 'card-face back';
+    back.style.setProperty('--rc-a', o.rcA);
+    back.style.setProperty('--rc-b', o.rcB);
+    back.style.setProperty('--nb-accent', RARITY_COLOR[o.rarity] || '#fff');
+    back.innerHTML = `
+      <div class="badgeRow">
+        <div class="discBadge">-${o.discount}%</div>
+        <div class="priceBox">
+          <div class="newP">${vpIconSVG()}${o.finalPrice}</div>
+          <div class="oldP">${o.price}</div>
+        </div>
+      </div>
+      <div class="artZone">
+        <div class="artShadow"></div>
+        ${o.img ? `<img src="${o.img}" alt="${o.name}">` : iconSVGFallback()}
+      </div>
+      <div class="nameBar">
+        <div class="skinName">${o.name}</div>
+        <div class="wpnLine">${o.weapon.toUpperCase()}</div>
+      </div>
+    `;
+
+    inner.appendChild(front);
+    inner.appendChild(back);
+    tilt.appendChild(inner);
+    outer.appendChild(tilt);
+
+    back.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if(!openedFlags[i]) return; // still locked — ignore, let the flip handler deal with it
+      openDetail(o, i);
+    });
+
+    if(!openedFlags[i]){
+      outer.addEventListener('click', () => openCard(i, outer, inner, o));
+    }
+    addTiltHandlers(outer, tilt);
+    grid.appendChild(outer);
+  });
+}
+
+// Subtle pointer-tracked 3D tilt on hover, independent of the flip transform.
+// Zooms 6-10% depending on how far off-center the cursor is, plus a soft hover chime + glow.
+function addTiltHandlers(outer, tilt){
+  outer.addEventListener('pointerenter', () => {
+    playHover();
+    outer.classList.add('hovering');
+  });
+  outer.addEventListener('pointermove', (e) => {
+    const rect = outer.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    tilt.style.transform = `rotateY(${x*16}deg) rotateX(${-y*16}deg) translateY(-4px)`;
+  });
+  outer.addEventListener('pointerleave', () => {
+    tilt.style.transform = '';
+    outer.classList.remove('hovering');
+  });
+}
+
+// Bursts a ring + scattering particles from the center of a card, colored by rarity.
+// Scales up with rarity so an Exclusive (knife) pull feels noticeably bigger than a Select one.
+const FLOURISH_SCALE = { select:1, deluxe:1.25, premium:1.6, exclusive:2.2 };
+function spawnParticles(outer, color, rarity){
+  const scale = FLOURISH_SCALE[rarity] || 1;
+  const container = document.createElement('div');
+  container.style.position = 'absolute';
+  container.style.inset = '0';
+  container.style.overflow = 'visible';
+  container.style.pointerEvents = 'none';
+  container.style.zIndex = '5';
+  outer.appendChild(container);
+
+  const ring = document.createElement('div');
+  ring.className = 'burstRing';
+  ring.style.setProperty('--pc', color);
+  ring.style.width = Math.round(60 * Math.min(scale, 1.5)) + 'px';
+  ring.style.height = ring.style.width;
+  container.appendChild(ring);
+
+  const count = Math.round(20 * scale);
+  for(let i=0;i<count;i++){
+    const p = document.createElement('div');
+    const isSpark = i % 3 === 0;
+    p.className = 'particle' + (isSpark ? ' spark' : '');
+    const angle = (Math.PI*2*i/count) + (Math.random()*0.4 - 0.2);
+    const dist = (46 + Math.random()*60) * scale;
+    p.style.setProperty('--px', Math.cos(angle)*dist + 'px');
+    p.style.setProperty('--py', Math.sin(angle)*dist + 'px');
+    p.style.setProperty('--pr', (Math.random()*360) + 'deg');
+    p.style.setProperty('--pc', color);
+    p.style.animationDelay = (Math.random()*0.08) + 's';
+    if(isSpark){
+      p.style.transform = `translate(-50%,-50%) rotate(${angle}rad)`;
+    }
+    container.appendChild(p);
+  }
+
+  setTimeout(() => container.remove(), 950);
+}
+
+// Full-screen color flash for the higher rarities only, scaled by tier, so the
+// rarest pulls (Premium/Exclusive) land with more visual weight than a Select pull.
+const FLASH_PEAK = { select:0, deluxe:0, premium:.22, exclusive:.4 };
+function triggerScreenFlash(color, rarity){
+  const peak = FLASH_PEAK[rarity] || 0;
+  if(!peak) return;
+  const el = document.getElementById('screenFlash');
+  el.style.setProperty('--fc', color);
+  el.style.setProperty('--fpeak', peak);
+  el.classList.remove('firing');
+  void el.offsetWidth; // restart animation
+  el.classList.add('firing');
+}
+
+// Center-scale detail modal: real price breakdown + placeholder Buy button
+function openDetail(offer, i){
+  playModalOpen();
+  const rc = RARITY_COLOR[offer.rarity] || '#fff';
+  const modal = document.getElementById('detailModal');
+  modal.style.setProperty('--rc-a', offer.rcA);
+  modal.style.setProperty('--rc-b', offer.rcB);
+  const alreadyBought = purchasedFlags[i];
+  const collSize = collectionSizeByName[offer.name];
+  const metaRows = `
+    <div class="metaRow"><span>Weapon Type</span><b>${offer.weaponType || offer.weapon}</b></div>
+    <div class="metaRow"><span>Edition</span><b>${offer.tierName || offer.rarity}</b></div>
+    ${offer.released ? `<div class="metaRow"><span>Released</span><b>${offer.released}</b></div>` : ''}
+    <div class="metaRow"><span>You Save</span><b>${offer.price - offer.finalPrice} VP</b></div>
+    ${collSize ? `<div class="metaRow"><span>Collection Size</span><b>${collSize} skin${collSize===1?'':'s'}</b></div>` : ''}
+  `;
+  const variantsBlock = offer.chromaCount > 0 ? `
+    <div class="detailVariants">
+      <span class="variantsLabel">${offer.chromaCount} Variant${offer.chromaCount>1?'s':''}${offer.chromaVariants.length ? ' · tap to preview' : ''}</span>
+      <div class="swatchRow">${offer.chromaVariants.map((v,idx) => `<button type="button" class="swatchDot${idx===0?' active':''}" data-idx="${idx}" style="background-image:url('${v.swatch}')" aria-label="Preview variant ${idx+1}"></button>`).join('')}</div>
+    </div>` : '';
+  modal.innerHTML = `
+    <button class="detailClose" aria-label="Close">&times;</button>
+    <div class="detailImgWrap">${offer.img ? `<img id="detailPreviewImg" src="${offer.img}" alt="${offer.name}">` : iconSVGFallback()}</div>
+    <div class="detailInfo hasMeta">
+      <span class="detailTierBadge" style="background:${rc}22;color:${rc};border-color:${rc}66">${offer.rarity}</span>
+      <h2>${offer.name}</h2>
+      <div class="detailWeapon">${offer.weapon.toUpperCase()}</div>
+      <div class="detailMeta">${metaRows}</div>
+      <p class="detailFlavor">${flavorTextFor(offer)}</p>
+      ${variantsBlock}
+      <div class="detailPriceRow" style="margin-top:16px;">
+        <span class="detailOldPrice">${offer.price} VP</span>
+        <span class="detailDiscount">-${offer.discount}%</span>
+      </div>
+      <div class="detailFinalPrice">${offer.finalPrice} VP</div>
+      <button class="buyBtn" id="buyBtn" ${alreadyBought ? 'disabled' : ''}>${
+        alreadyBought
+          ? 'PURCHASED <span class="buySub">already bought this market</span>'
+          : 'BUY <span class="buySub">(this session only)</span>'
+      }</button>
+    </div>
+  `;
+  if(offer.chromaVariants && offer.chromaVariants.length){
+    modal.querySelectorAll('.swatchDot').forEach(dot => {
+      dot.addEventListener('click', () => {
+        const v = offer.chromaVariants[+dot.dataset.idx];
+        if(!v || !v.img) return;
+        const previewImg = modal.querySelector('#detailPreviewImg');
+        if(previewImg) previewImg.src = v.img;
+        modal.querySelectorAll('.swatchDot').forEach(d => d.classList.remove('active'));
+        dot.classList.add('active');
+        playClick();
+      });
+    });
+  }
+  modal.querySelector('.detailClose').addEventListener('click', closeDetail);
+  modal.querySelector('#buyBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const btn = e.currentTarget;
+    if(btn.disabled) return;
+    playClick();
+    removeFromPool(offer);
+    ownedSkins.push({...offer, purchasedAt: Date.now()});
+    sessionSpent += offer.finalPrice;
+    purchasedFlags[i] = true; // locks this specific card slot against being bought again
+    updateSessionStats();
+    updateCollectionCount();
+    btn.disabled = true;
+    btn.innerHTML = 'PURCHASED <span class="buySub">removed from pool for this session</span>';
+    setTimeout(closeDetail, 850);
+  });
+  document.getElementById('detailOverlay').classList.add('open');
+}
+
+// Purchasing is in-memory only — it removes this skin from gunPool/meleePool so
+// future "NEW MARKET" rerolls can't draw it again for the rest of this browser
+// session. Nothing is written to storage, so a full page reload/reopen resets it.
+function removeFromPool(offer){
+  const isMatch = (e) => e.name === offer.name && e.weapon === offer.weapon;
+  gunPool = gunPool.filter(e => !isMatch(e));
+  meleePool = meleePool.filter(e => !isMatch(e));
+}
+function closeDetail(){
+  const overlay = document.getElementById('detailOverlay');
+  if(!overlay.classList.contains('open')) return;
+  playModalClose();
+  overlay.classList.remove('open');
+}
+
+function updateSessionStats(){
+  document.getElementById('statMarkets').textContent = sessionMarketsSeen;
+  document.getElementById('statSpent').textContent = sessionSpent;
+  document.getElementById('statSaved').textContent = sessionSaved;
+}
+function updateCollectionCount(){
+  document.getElementById('collCount').textContent = ownedSkins.length;
+}
+
+// Live ticking "ends in" countdown — picks a random end time on each new market,
+// then counts down for real (days/hours/minutes/seconds) instead of a static label.
+function startCountdown(days){
+  const endAt = Date.now() + days * 86400000;
+  if(countdownInterval) clearInterval(countdownInterval);
+  function tick(){
+    const diff = Math.max(0, endAt - Date.now());
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    document.getElementById('daysLeft').textContent = `${d}D ${h}H ${m}M ${s}S`;
+    if(diff <= 0) clearInterval(countdownInterval);
+  }
+  tick();
+  countdownInterval = setInterval(tick, 1000);
+}
+
+function timeAgo(ts){
+  const diff = Math.max(0, Date.now() - ts);
+  const s = Math.floor(diff / 1000);
+  if(s < 60) return s + 's ago';
+  const m = Math.floor(s / 60);
+  if(m < 60) return m + 'm ago';
+  const h = Math.floor(m / 60);
+  if(h < 24) return h + 'h ago';
+  return Math.floor(h / 24) + 'd ago';
+}
+
+function renderCollectionFilters(){
+  const wrap = document.getElementById('collectionFilters');
+  const rarities = ['all','select','deluxe','premium','exclusive'];
+  const weapons = ['all', ...new Set(ownedSkins.map(s => s.weapon))];
+
+  const rarityChips = rarities.map(r =>
+    `<button class="filterChip${collectionFilter.rarity===r?' active':''}" data-rarity="${r}">${r}</button>`
+  ).join('');
+
+  const weaponOptions = weapons.map(w =>
+    `<option value="${w}"${collectionFilter.weapon===w?' selected':''}>${w==='all'?'All weapons':w}</option>`
+  ).join('');
+
+  wrap.innerHTML = `
+    ${rarityChips}
+    <select id="weaponFilter">${weaponOptions}</select>
+    <select id="sortFilter">
+      <option value="newest"${collectionFilter.sort==='newest'?' selected':''}>Newest first</option>
+      <option value="oldest"${collectionFilter.sort==='oldest'?' selected':''}>Oldest first</option>
+      <option value="priceHigh"${collectionFilter.sort==='priceHigh'?' selected':''}>Price: high to low</option>
+      <option value="priceLow"${collectionFilter.sort==='priceLow'?' selected':''}>Price: low to high</option>
+    </select>
+  `;
+
+  wrap.querySelectorAll('.filterChip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      collectionFilter.rarity = chip.dataset.rarity;
+      playClick();
+      renderCollectionFilters();
+      renderCollectionList();
+    });
+  });
+  wrap.querySelector('#weaponFilter').addEventListener('change', (e) => {
+    collectionFilter.weapon = e.target.value;
+    renderCollectionList();
+  });
+  wrap.querySelector('#sortFilter').addEventListener('change', (e) => {
+    collectionFilter.sort = e.target.value;
+    renderCollectionList();
+  });
+}
+
+function renderCollectionList(){
+  const list = document.getElementById('collectionList');
+  let items = ownedSkins.slice();
+
+  if(collectionFilter.rarity !== 'all'){
+    items = items.filter(s => s.rarity === collectionFilter.rarity);
+  }
+  if(collectionFilter.weapon !== 'all'){
+    items = items.filter(s => s.weapon === collectionFilter.weapon);
+  }
+  switch(collectionFilter.sort){
+    case 'oldest': items.sort((a,b) => a.purchasedAt - b.purchasedAt); break;
+    case 'priceHigh': items.sort((a,b) => b.finalPrice - a.finalPrice); break;
+    case 'priceLow': items.sort((a,b) => a.finalPrice - b.finalPrice); break;
+    default: items.sort((a,b) => b.purchasedAt - a.purchasedAt); // newest
+  }
+
+  if(!items.length){
+    list.innerHTML = `<div class="emptyCollection">${ownedSkins.length ? 'No skins match these filters.' : 'Nothing bought yet — reveal a card and hit Buy to start your collection.'}</div>`;
+    return;
+  }
+
+  const rc = RARITY_COLOR;
+  list.innerHTML = items.map(s => `
+    <div class="collectionItem">
+      <div class="thumb" style="--rc-a:${s.rcA};--rc-b:${s.rcB}">
+        ${s.img ? `<img src="${s.img}" alt="${s.name}">` : iconSVGFallback()}
+      </div>
+      <div class="meta">
+        <div class="metaName">${s.name} <span style="color:${rc[s.rarity]||'#fff'}">·</span> ${s.weapon.toUpperCase()}</div>
+        <div class="metaSub">${s.rarity} · bought ${timeAgo(s.purchasedAt)}</div>
+      </div>
+      <div class="metaPrice">
+        <b>${s.finalPrice} VP</b>
+        <span>-${s.discount}%</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openCollection(){
+  playModalOpen();
+  renderCollectionFilters();
+  renderCollectionList();
+  document.getElementById('collectionOverlay').classList.add('open');
+}
+function closeCollection(){
+  const overlay = document.getElementById('collectionOverlay');
+  if(!overlay.classList.contains('open')) return;
+  playModalClose();
+  overlay.classList.remove('open');
+}
+
+function renderLegend(){
+  const legend = document.getElementById('legend');
+  const items = [
+    {label:'Select', color:'#1f5c86'},
+    {label:'Deluxe', color:'#128a72'},
+    {label:'Premium', color:'#8a2555'},
+    {label:'Exclusive', color:GOLD},
+  ];
+  legend.innerHTML = items.map(it => `<span><span class="dot" style="background:${it.color}"></span>${it.label}</span>`).join('');
+  legend.style.display = 'flex';
+}
+
+function openCard(i, outerEl, innerEl, offer){
+  if(openedFlags[i]) return;
+  openedFlags[i] = true;
+
+  playFlip();
+  innerEl.classList.add('flipped');
+  const color = RARITY_COLOR[offer.rarity] || '#fff';
+  // fire the particle burst + reveal chime roughly when the card is edge-on mid-flip
+  setTimeout(() => {
+    spawnParticles(outerEl, color, offer.rarity);
+    triggerScreenFlash(color, offer.rarity);
+    playReveal(offer.rarity);
+  }, 260);
+
+  openCount++;
+  savedTotal += (offer.price - offer.finalPrice);
+  sessionSaved += (offer.price - offer.finalPrice);
+  document.getElementById('openCount').textContent = openCount;
+  document.getElementById('savedTotal').textContent = savedTotal;
+  updateSessionStats();
+}
+
+function newMarket(){
+  offers = generateMarket();
+  openedFlags = Array(6).fill(false);
+  purchasedFlags = Array(6).fill(false);
+  startCountdown(randInt(1,28));
+  openCount = 0;
+  savedTotal = 0;
+  sessionMarketsSeen++;
+  document.getElementById('openCount').textContent = 0;
+  document.getElementById('savedTotal').textContent = 0;
+  updateSessionStats();
+  render();
+}
+
+async function init(){
+  await loadData();
+  document.getElementById('status').style.display = 'none';
+  document.getElementById('grid').style.display = 'grid';
+  document.getElementById('footerRow').style.display = 'flex';
+  document.getElementById('sessionStats').style.display = 'flex';
+  document.getElementById('disclaimer').style.display = 'block';
+  if(usingFallback === true){
+    const d = document.getElementById('disclaimer');
+    d.innerHTML = 'Live valorant-api.com data was unreachable in this environment — showing generated placeholder names/art instead of real skin data.<br>' + d.innerHTML;
+  } else if(usingFallback === 'partial'){
+    const d = document.getElementById('disclaimer');
+    d.innerHTML = 'Live valorant-api.com data loaded, but one or more rarity tiers had too few matches — those tiers were topped up with placeholder entries so all rarities still appear; other tiers show real art.<br>' + d.innerHTML;
+  }
+  renderLegend();
+  document.getElementById('rerollBtn').addEventListener('click', () => { playClick(); newMarket(); });
+
+  const overlay = document.getElementById('detailOverlay');
+  overlay.addEventListener('click', (e) => {
+    if(e.target === overlay) closeDetail(); // click on backdrop, not the modal itself
+  });
+
+  document.getElementById('collectionBtn').addEventListener('click', () => { playClick(); openCollection(); });
+  document.getElementById('collectionClose').addEventListener('click', closeCollection);
+  const collOverlay = document.getElementById('collectionOverlay');
+  collOverlay.addEventListener('click', (e) => {
+    if(e.target === collOverlay) closeCollection();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape'){ closeDetail(); closeCollection(); }
+  });
+
+  newMarket();
+}
+
+// Subtle pointer-driven parallax on the background — two layers move at different
+// depths so the grid/glow feels like it has real distance behind the cards.
+(function initParallax(){
+  const glow = document.getElementById('bgGlow');
+  const grid = document.getElementById('bgGrid');
+  let raf = null;
+  window.addEventListener('pointermove', (e) => {
+    if(raf) return;
+    raf = requestAnimationFrame(() => {
+      const x = (e.clientX / window.innerWidth) - 0.5;
+      const y = (e.clientY / window.innerHeight) - 0.5;
+      glow.style.transform = `translate(${x * -22}px, ${y * -16}px)`;
+      grid.style.transform = `translate(${x * -40}px, ${y * -30}px)`;
+      raf = null;
+    });
+  });
+})();
+
+init();
+</script>
+</body>
+</html>
