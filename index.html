@@ -1337,7 +1337,6 @@ function openCard(i, outerEl, innerEl, offer){
   // fire the particle burst + reveal chime roughly when the card is edge-on mid-flip
   setTimeout(() => {
     spawnParticles(outerEl, color, offer.rarity);
-    triggerScreenFlash(color, offer.rarity);
     playReveal(offer.rarity);
   }, 260);
 
